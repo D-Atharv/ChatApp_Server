@@ -8,32 +8,44 @@ datasource db {
 }
 
 model User {
-  id             String         @id @default(uuid())
-  email          String         @unique
-  username       String         @unique
+  id             String              @id @default(uuid())
+  email          String              @unique
+  username       String              @unique
   password       String
-  photoUrl       String? // Optional field to store the URL or path of the user's photo
-  conversations  Conversation[] @relation("UserConversations")
-  messages       Message[]      @relation("UserMessages")
-  metadata       UserMetadata[] @relation("UserMetadataOwner") // Added relation for metadata
-  targetMetadata UserMetadata[] @relation("UserMetadataTarget") // Added relation for target metadata
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  photoUrl       String?             // Optional field to store the URL or path of the user's photo
+  conversations  UserConversation[]
+  messages       Message[]
+  metadata       UserMetadata[]      @relation("UserMetadataOwner")
+  targetMetadata UserMetadata[]      @relation("UserMetadataTarget")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 }
 
 model Conversation {
-  id           String    @id @default(uuid())
-  participants User[]    @relation("UserConversations")
+  id           String             @id @default(uuid())
+  participants UserConversation[]
   messages     Message[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model UserConversation {
+  userId         String
+  conversationId String
+  user           User         @relation(fields: [userId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  joinedAt       DateTime     @default(now())
+  role           UserRole     @default(MEMBER)
+  isActive       Boolean      @default(true)
+
+  @@id([userId, conversationId])
 }
 
 model Message {
   id             String       @id @default(uuid())
   content        String
   senderId       String
-  sender         User         @relation("UserMessages", fields: [senderId], references: [id])
+  sender         User         @relation(fields: [senderId], references: [id])
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   createdAt      DateTime     @default(now())
@@ -41,12 +53,19 @@ model Message {
 }
 
 model UserMetadata {
-  id           String   @id @default(uuid())
-  userId       String // ID of the user who is saving the metadata
-  targetUserId String // ID of the user about whom the metadata is saved
-  nickname     String? // Optional field for custom name or nickname
+  userId       String
+  targetUserId String
+  nickname     String?  // Optional field for custom name or nickname
   user         User     @relation("UserMetadataOwner", fields: [userId], references: [id])
   targetUser   User     @relation("UserMetadataTarget", fields: [targetUserId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@id([userId, targetUserId]) // Composite primary key
+}
+
+
+enum UserRole {
+  ADMIN
+  MEMBER
 }

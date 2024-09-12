@@ -1,10 +1,14 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { connectDB } from './database/db';
+import { userRouter } from './routes/user_routes/user_route';
 
+import 'dotenv/config';
 const app = express();
 
 async function startServer() {
     await connectDB();
+
+    app.use('/api', userRouter);
 
     app.get('/', (req: Request, res: Response, next: NextFunction) => {
         res.send('Hello World!');

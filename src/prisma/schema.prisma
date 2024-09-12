@@ -8,64 +8,50 @@ datasource db {
 }
 
 model User {
-  id             String              @id @default(uuid())
-  email          String              @unique
-  username       String              @unique
-  password       String
-  photoUrl       String?             // Optional field to store the URL or path of the user's photo
-  conversations  UserConversation[]
-  messages       Message[]
-  metadata       UserMetadata[]      @relation("UserMetadataOwner")
-  targetMetadata UserMetadata[]      @relation("UserMetadataTarget")
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  id         Int          @id @default(autoincrement())
+  name       String       @db.VarChar(191)
+  email      String       @unique
+  image      String? // URL or path to the user's image (photo)
+  createdAt  DateTime     @default(now())
+  groups     Group[]      @relation("GroupCreator") // Relation back to Group as creator
+  groupUsers GroupUsers[]
+  messages   Message[]
+
+  @@map("users")
 }
 
-model Conversation {
-  id           String             @id @default(uuid())
-  participants UserConversation[]
-  messages     Message[]
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+model Group {
+  id          String       @id @default(uuid()) @db.Uuid
+  title       String? // Optional: If it's a group chat, it has a title; otherwise, it's null for one-on-one chats
+  isGroupChat Boolean      @default(false) // True for group chat, false for one-on-one
+  creator     User         @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId   Int
+  users       GroupUsers[]
+  messages    Message[]
+  createdAt   DateTime     @default(now())
+
+  @@map("groups")
 }
 
-model UserConversation {
-  userId         String
-  conversationId String
-  user           User         @relation(fields: [userId], references: [id])
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  joinedAt       DateTime     @default(now())
-  role           UserRole     @default(MEMBER)
-  isActive       Boolean      @default(true)
+model GroupUsers {
+  id       Int      @id @default(autoincrement())
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId  String   @db.Uuid
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   Int
+  joinedAt DateTime @default(now())
 
-  @@id([userId, conversationId])
+  @@map("group_users")
 }
 
 model Message {
-  id             String       @id @default(uuid())
-  content        String
-  senderId       String
-  sender         User         @relation(fields: [senderId], references: [id])
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-}
+  id        String   @id @default(uuid()) @db.Uuid
+  content   String
+  sender    User     @relation(fields: [senderId], references: [id])
+  senderId  Int
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   String   @db.Uuid
+  createdAt DateTime @default(now())
 
-model UserMetadata {
-  userId       String
-  targetUserId String
-  nickname     String?  // Optional field for custom name or nickname
-  user         User     @relation("UserMetadataOwner", fields: [userId], references: [id])
-  targetUser   User     @relation("UserMetadataTarget", fields: [targetUserId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@id([userId, targetUserId]) // Composite primary key
-}
-
-
-enum UserRole {
-  ADMIN
-  MEMBER
+  @@map("messages")
 }

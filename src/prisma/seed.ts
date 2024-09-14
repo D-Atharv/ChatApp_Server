@@ -1,78 +1,59 @@
 import { prisma } from "../database/prisma";
-import { hash } from 'bcryptjs';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config();
 
 async function main() {
-    const hashedPassword = await hash('securepassword', 10);
+  // Create Users
+  const userA = await prisma.user.create({
+    data: {
+      name: 'Alice',
+      email: 'alice@example.com',
+      image: 'https://example.com/alice.jpg',
+    },
+  });
 
+  const userB = await prisma.user.create({
+    data: {
+      name: 'Bob',
+      email: 'bob@example.com',
+      image: 'https://example.com/bob.jpg',
+    },
+  });
 
-    const user1 = await prisma.user.create({
-        data: {
-            email: 'alice@example.com',
-            username: 'alice',
-            password: hashedPassword,
-            photoUrl: 'https://example.com/photo/alice.jpg',
-        },
-    });
+  // Create a Group
+  const group = await prisma.group.create({
+    data: {
+      title: 'Work Team',
+      isGroupChat: true,
+      creatorId: userA.id,
+    },
+  });
 
-    const user2 = await prisma.user.create({
-        data: {
-            email: 'bob@example.com',
-            username: 'bob',
-            password: hashedPassword,
-            photoUrl: 'https://example.com/photo/bob.jpg',
-        },
-    });
+  // Add Users to the Group
+  await prisma.groupUsers.createMany({
+    data: [
+      { groupId: group.id, userId: userA.id },
+      { groupId: group.id, userId: userB.id },
+    ],
+  });
 
-    const conversation = await prisma.conversation.create({
-        data: {
-            participants: {
-                create: [
-                    { userId: user1.id },
-                    { userId: user2.id },
-                ],
-            },
-        },
-    });
+  // Create a Message
+  await prisma.message.create({
+    data: {
+      content: 'Hello Bob!',
+      senderId: userA.id,
+      groupId: group.id,
+    },
+  });
 
-    await prisma.message.createMany({
-        data: [
-            {
-                content: 'Hello Bob!',
-                senderId: user1.id,
-                conversationId: conversation.id,
-            },
-            {
-                content: 'Hi Alice!',
-                senderId: user2.id,
-                conversationId: conversation.id,
-            },
-        ],
-    });
-
-    await prisma.userMetadata.createMany({
-        data: [
-            {
-                userId: user1.id,
-                targetUserId: user2.id,
-                nickname: 'Bobster',
-            },
-            {
-                userId: user2.id,
-                targetUserId: user1.id,
-                nickname: 'Alice',
-            },
-        ],
-    });
-
-    console.log('Database seeded successfully.');
+  console.log('Seed data has been added.');
 }
 
 main()
-    .catch(e => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+  .catch(e => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

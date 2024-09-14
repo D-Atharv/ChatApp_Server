@@ -7,13 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//have to add block table
 model User {
-  id         Int          @id @default(autoincrement())
+  id         String       @id @default(uuid()) @db.Uuid
   name       String       @db.VarChar(191)
   email      String       @unique
   image      String? // URL or path to the user's image (photo)
   createdAt  DateTime     @default(now())
-  groups     Group[]      @relation("GroupCreator") // Relation back to Group as creator
+  groups     Group[]      @relation("GroupCreator")
   groupUsers GroupUsers[]
   messages   Message[]
 
@@ -25,7 +26,7 @@ model Group {
   title       String? // Optional: If it's a group chat, it has a title; otherwise, it's null for one-on-one chats
   isGroupChat Boolean      @default(false) // True for group chat, false for one-on-one
   creator     User         @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  creatorId   Int
+  creatorId   String       @db.Uuid // Change to UUID
   users       GroupUsers[]
   messages    Message[]
   createdAt   DateTime     @default(now())
@@ -34,11 +35,11 @@ model Group {
 }
 
 model GroupUsers {
-  id       Int      @id @default(autoincrement())
+  id       String   @id @default(uuid()) @db.Uuid
   group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   groupId  String   @db.Uuid
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId   Int
+  userId   String   @db.Uuid
   joinedAt DateTime @default(now())
 
   @@map("group_users")
@@ -48,7 +49,7 @@ model Message {
   id        String   @id @default(uuid()) @db.Uuid
   content   String
   sender    User     @relation(fields: [senderId], references: [id])
-  senderId  Int
+  senderId  String   @db.Uuid // Change to UUID
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   groupId   String   @db.Uuid
   createdAt DateTime @default(now())

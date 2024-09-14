@@ -7,25 +7,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-//have to add block table
 model User {
   id         String       @id @default(uuid()) @db.Uuid
   name       String       @db.VarChar(191)
   email      String       @unique
-  image      String? // URL or path to the user's image (photo)
+  image      String?      
   createdAt  DateTime     @default(now())
   groups     Group[]      @relation("GroupCreator")
   groupUsers GroupUsers[]
   messages   Message[]
+
+  blockedUsers Block[]    @relation("UserBlockedBy") //Users who have blocked this user.
+  blockingUsers Block[]    @relation("UserBlocks") //Users whom this user has blocked.
 
   @@map("users")
 }
 
 model Group {
   id          String       @id @default(uuid()) @db.Uuid
-  title       String? // Optional: If it's a group chat, it has a title; otherwise, it's null for one-on-one chats
+  title       String?      // Optional: If it's a group chat, it has a title; otherwise, it's null for one-on-one chats
   isGroupChat Boolean      @default(false) // True for group chat, false for one-on-one
-  creatorId   String       @db.Uuid // Change to UUID
+  creatorId   String       @db.Uuid
   creator     User         @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   users       GroupUsers[]
   messages    Message[]
@@ -49,10 +51,21 @@ model Message {
   id        String   @id @default(uuid()) @db.Uuid
   content   String
   sender    User     @relation(fields: [senderId], references: [id])
-  senderId  String   @db.Uuid // Change to UUID
+  senderId  String   @db.Uuid
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   groupId   String   @db.Uuid
   createdAt DateTime @default(now())
 
   @@map("messages")
+}
+
+model Block {
+  id        String   @id @default(uuid()) @db.Uuid
+  blocker   User     @relation("UserBlocks", fields: [blockerId], references: [id])
+  blockerId String   @db.Uuid
+  blocked   User     @relation("UserBlockedBy", fields: [blockedId], references: [id])
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  @@map("blocks")
 }

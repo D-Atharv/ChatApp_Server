@@ -25,8 +25,8 @@ model Group {
   id          String       @id @default(uuid()) @db.Uuid
   title       String? // Optional: If it's a group chat, it has a title; otherwise, it's null for one-on-one chats
   isGroupChat Boolean      @default(false) // True for group chat, false for one-on-one
-  creator     User         @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   creatorId   String       @db.Uuid // Change to UUID
+  creator     User         @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   users       GroupUsers[]
   messages    Message[]
   createdAt   DateTime     @default(now())

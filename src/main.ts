@@ -1,30 +1,34 @@
 import express, { Request, Response, NextFunction } from 'express';
+import http from "http";
 import { connectDB } from './database/db';
-import { groupRouter } from '../src/routes/group_routes/group_route';
-import { messageRouter } from '../src/routes/message_routes/message_route';
+import { apiRouter } from './routes/routes'
+import { setupSocket } from './sockets/socket_server';
 
 import dotenv from 'dotenv'
 dotenv.config();
 
 const app = express();
+app.use(express.json())
 
 async function startServer() {
     await connectDB();
 
-    app.use('/api', groupRouter);
-    app.use('/api', messageRouter);
+    const httpServer = http.createServer(app); //allowing the app (Express) to handle HTTP requests
+    const io = setupSocket(httpServer);
 
-    app.get('/', (req: Request, res: Response, next: NextFunction) => {
-        res.send('Hello World!');
+    app.use('/api', apiRouter);
+
+    app.get('/', (req: Request, resp: Response, next: NextFunction) => {
+        resp.send('Hello World!');
     });
 
-    app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    app.use((err: Error, req: Request, resp: Response, next: NextFunction) => {
         console.error(err);
-        res.status(500).send('Something broke!');
+        resp.status(500).send('Something broke!');
     });
 
     const port = process.env.PORT || 3000;
-    app.listen(port, () => console.log(`Server running on port ${port}`));
+    httpServer.listen(port, () => console.log(`Server running on port ${port}`));
 }
 
 startServer();

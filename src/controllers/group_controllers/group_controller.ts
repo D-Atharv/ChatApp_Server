@@ -1,6 +1,82 @@
 import { Request, Response } from "express";
 import { prisma } from "../../database/prisma";
 
+
+export const createGroup = async (req: Request, resp: Response) => {
+    const userID = '3871e4a5-ee63-4b7a-abb4-bcd65316656f'; // hardcoded for now
+
+    const { otherUserEmail } = req.body;
+
+    try {
+        const otherUser = await prisma.user.findUnique({
+            where: {
+                email: otherUserEmail
+            }
+        });
+
+        if (!otherUser) {
+            return resp.status(404).json({
+                response: "failure",
+                message: "User with this email does not exist.",
+                data: {}
+            });
+        }
+
+        const checkExistingGroup = await prisma.group.findFirst({
+            where: {
+                isGroupChat: false,
+                AND: [
+                    { users: { some: { userId: userID } } },
+                    { users: { some: { userId: otherUser.id } } }
+                ]
+            }, include: {
+                users: true
+            }
+        })
+
+        if (checkExistingGroup) {
+            return resp.status(200).json({
+                response: "success",
+                message: "A group between these users already exists.",
+                data: {}
+            });
+        }
+
+        const createNewGroup = await prisma.group.create({
+            data: {
+                isGroupChat: false,
+                creatorId: userID,
+
+                users: {
+                    create: [
+                        { userId: userID },
+                        { userId: otherUser.id }
+                    ]
+                }
+            },
+            include: {
+                users: true
+            }
+        })
+
+        return resp.status(201).json({
+            response: "success",
+            message: "Group created successfully.",
+            data: createNewGroup
+        });
+
+    } catch (error) {
+        console.error('Error creating group:', error);
+        resp.status(500).json({
+            response: "failure",
+            message: "Failed to create group",
+            data: {}
+        })
+    }
+}
+
+
+//handle in frontend
 export const getAllUserGroups = async (req: Request, resp: Response) => {
     const userID = '3871e4a5-ee63-4b7a-abb4-bcd65316656f'; // hardcoded for now
 
@@ -71,4 +147,5 @@ export const getAllUserGroups = async (req: Request, resp: Response) => {
     }
 };
 
-//handle in frontend
+
+

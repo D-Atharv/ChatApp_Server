@@ -11,21 +11,22 @@ model User {
   id         String       @id @default(uuid()) @db.Uuid
   name       String       @db.VarChar(191)
   email      String       @unique
-  image      String?      
+  image      String?
+  password   String
   createdAt  DateTime     @default(now())
   groups     Group[]      @relation("GroupCreator")
   groupUsers GroupUsers[]
   messages   Message[]
 
-  blockedUsers Block[]    @relation("UserBlockedBy") //Users who have blocked this user.
-  blockingUsers Block[]    @relation("UserBlocks") //Users whom this user has blocked.
+  blockedUsers  Block[] @relation("UserBlockedBy") //Users who have blocked this user.
+  blockingUsers Block[] @relation("UserBlocks") //Users whom this user has blocked.
 
   @@map("users")
 }
 
 model Group {
   id          String       @id @default(uuid()) @db.Uuid
-  title       String?      // Optional: If it's a group chat, it has a title; otherwise, it's null for one-on-one chats
+  title       String? // Optional: If it's a group chat, it has a title; otherwise, it's null for one-on-one chats
   isGroupChat Boolean      @default(false) // True for group chat, false for one-on-one
   creatorId   String       @db.Uuid
   creator     User         @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)

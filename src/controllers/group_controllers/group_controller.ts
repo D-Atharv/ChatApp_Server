@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../../database/prisma";
+import { group } from "console";
+import { title } from "process";
 
 
 export const createGroup = async (req: Request, resp: Response) => {
@@ -80,6 +82,13 @@ export const createGroup = async (req: Request, resp: Response) => {
 export const getAllUserGroups = async (req: Request, resp: Response) => {
     const userID = '3871e4a5-ee63-4b7a-abb4-bcd65316656f'; // hardcoded for now
 
+    if(!userID) {
+        return resp.status(400).json({
+            response: "failure",
+            message: "User ID not provided",
+        })
+    }
+
     try {
         const groups = await prisma.group.findMany({
             where: {
@@ -103,34 +112,15 @@ export const getAllUserGroups = async (req: Request, resp: Response) => {
             }
         });
 
-        const formattedGroups = groups.map(group => {
-            if (!group.isGroupChat) {
-                const otherUser = group.users.find(user => user.userId !== userID);
-
-                return {
-                    id: group.id,
-                    title: otherUser ? otherUser.user.name : null,
-                    isGroupChat: group.isGroupChat,
-                    creatorId: group.creatorId,
-                    createdAt: group.createdAt.toISOString(),
-                    users: group.users.map(user => ({
-                        userId: user.userId,
-                        name: user.user.name
-                    }))
-                };
-            }
-            return {
-                id: group.id,
-                title: group.title,
-                isGroupChat: group.isGroupChat,
-                creatorId: group.creatorId,
-                createdAt: group.createdAt.toISOString(),
-                users: group.users.map(user => ({
-                    userId: user.userId,
-                    name: user.user.name
-                }))
-            };
-        });
+        const formattedGroups = groups.map(group => ({
+            id: group.id,
+            title : group.isGroupChat ? group.title : undefined,
+            isGroupChat : group.isGroupChat,
+            users: group.users.map(user => ({
+                userId : user.userId,
+                name:user.user.name
+            }))
+        }))
 
         resp.status(200).json({
             response: "success",

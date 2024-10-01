@@ -3,5 +3,5 @@ import { getAllUserGroups, createGroup } from '../../controllers/group_controlle
 
 export const groupRouter = Router();
 
-groupRouter.get('/groups', getAllUserGroups);
+groupRouter.get('/allGroups', getAllUserGroups);
 groupRouter.post('/createGroup', createGroup);

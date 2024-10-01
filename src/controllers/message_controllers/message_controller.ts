@@ -2,8 +2,8 @@ import { Request, response, Response } from "express";
 import { prisma } from "../../database/prisma";
 
 export const getMessageForGroup = async (req: Request, resp: Response) => {
-    // const userID = '3871e4a5-ee63-4b7a-abb4-bcd65316656f'; // hardcoded for now
-    const userID = '86444607-43aa-45b1-9025-1ced34282088'; // hardcoded for now
+    const userID = '3871e4a5-ee63-4b7a-abb4-bcd65316656f'; // hardcoded for now
+    // const userID = '86444607-43aa-45b1-9025-1ced34282088'; // hardcoded for now
     const groupID = req.params.groupID
     try {
 

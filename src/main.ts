@@ -39,10 +39,10 @@ async function startServer() {
     app.use('/api', apiRouter);
     
 
-
-    app.get('/', (req: Request, resp: Response) => {
+    app.get('/', (req: Request, resp: Response, next: NextFunction) => {
         resp.send('Hello World!');
     });
+    
 
     app.use((err: Error, req: Request, resp: Response, next: NextFunction) => {
         console.error(err);

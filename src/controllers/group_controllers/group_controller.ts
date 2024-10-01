@@ -1,11 +1,10 @@
 import { Request, Response } from "express";
 import { prisma } from "../../database/prisma";
-import { group } from "console";
-import { title } from "process";
 
 
 export const createGroup = async (req: Request, resp: Response) => {
-    const userID = '3871e4a5-ee63-4b7a-abb4-bcd65316656f'; // hardcoded for now
+
+    const userID = req.user?.id;
 
     const { otherUserEmail } = req.body;
 
@@ -13,6 +12,10 @@ export const createGroup = async (req: Request, resp: Response) => {
         const otherUser = await prisma.user.findUnique({
             where: {
                 email: otherUserEmail
+            },
+            select: {
+                id: true,
+                image: true
             }
         });
 
@@ -32,7 +35,16 @@ export const createGroup = async (req: Request, resp: Response) => {
                     { users: { some: { userId: otherUser.id } } }
                 ]
             }, include: {
-                users: true
+                users: {
+                    select: {
+                        user: {
+                            select: {
+                                id: true,
+                                image: true
+                            }
+                        }
+                    }
+                }
             }
         })
 
@@ -40,31 +52,53 @@ export const createGroup = async (req: Request, resp: Response) => {
             return resp.status(200).json({
                 response: "success",
                 message: "A group between these users already exists.",
-                data: {}
+                data: {
+                    id: checkExistingGroup.id,
+                    users: checkExistingGroup.users.map(u => ({
+                        userId: u.user.id,
+                        image: u.user.image
+                    }))
+                }
             });
         }
 
+        //hardcoded for one-one chat
         const createNewGroup = await prisma.group.create({
             data: {
                 isGroupChat: false,
-                creatorId: userID,
+                creatorId: userID ?? '',
 
                 users: {
                     create: [
-                        { userId: userID },
+                        { userId: userID ?? '' },
                         { userId: otherUser.id }
                     ]
                 }
             },
             include: {
-                users: true
+                users: {
+                    select: {
+                        user: {
+                            select: {
+                                id: true,
+                                image: true
+                            }
+                        }
+                    }
+                }
             }
         })
 
         return resp.status(201).json({
             response: "success",
             message: "Group created successfully.",
-            data: createNewGroup
+            data: {
+                id: createNewGroup.id,
+                users: createNewGroup.users.map(u => ({
+                    userId: u.user.id,
+                    image: u.user.image
+                }))
+            }
         });
 
     } catch (error) {
@@ -77,12 +111,10 @@ export const createGroup = async (req: Request, resp: Response) => {
     }
 }
 
-
-//handle in frontend
 export const getAllUserGroups = async (req: Request, resp: Response) => {
-    const userID = '3871e4a5-ee63-4b7a-abb4-bcd65316656f'; // hardcoded for now
+    const userID = req.user?.id;
 
-    if(!userID) {
+    if (!userID) {
         return resp.status(400).json({
             response: "failure",
             message: "User ID not provided",
@@ -100,11 +132,17 @@ export const getAllUserGroups = async (req: Request, resp: Response) => {
             },
             include: {
                 users: {
-                    select: {
-                        userId: true,
+                    where: {
+                        userId: {
+                            not: userID //removing currentUserID
+                        }
+                    },
+                    select : {
                         user: {
                             select: {
-                                name: true
+                                id: true,
+                                name: true,
+                                image: true
                             }
                         }
                     }
@@ -114,11 +152,12 @@ export const getAllUserGroups = async (req: Request, resp: Response) => {
 
         const formattedGroups = groups.map(group => ({
             id: group.id,
-            title : group.isGroupChat ? group.title : undefined,
-            isGroupChat : group.isGroupChat,
-            users: group.users.map(user => ({
-                userId : user.userId,
-                name:user.user.name
+            title: group.isGroupChat ? group.title : undefined,
+            isGroupChat: group.isGroupChat,
+            users: group.users.map(u => ({
+                userId: u.user.id, //other userID
+                name: u.user.name,
+                image : u.user.image
             }))
         }))
 

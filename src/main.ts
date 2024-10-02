@@ -27,7 +27,7 @@ async function startServer() {
     const io = setupSocket(httpServer);
 
     app.use((req:Request, resp : Response, next: NextFunction) => {
-        const openRoutes = ['/signIn', '/login'];
+        const openRoutes = ['/signin', '/login'];
 
         if (openRoutes.some(route => req.path.endsWith(route))){
             return next();

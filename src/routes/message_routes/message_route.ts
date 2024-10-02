@@ -3,4 +3,4 @@ import { getMessageForGroup } from "../../controllers/message_controllers/messag
 
 export const messageRouter = Router();
 
-messageRouter.get('/groups/:groupID/messages', getMessageForGroup);
+messageRouter.get('/groups/:groupID/allMessages', getMessageForGroup);

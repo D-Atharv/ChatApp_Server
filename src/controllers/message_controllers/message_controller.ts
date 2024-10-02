@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, response, Response } from "express";
 import { prisma } from "../../database/prisma";
 
 export const getMessageForGroup = async (req: Request, resp: Response) => {

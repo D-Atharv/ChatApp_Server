@@ -223,3 +223,33 @@ export const updateUser = async (req: Request, resp: Response) => {
     }
 
 }
+
+export const getMe = async (req: Request, resp: Response) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: {
+                id: req.user?.id,
+            }
+        })
+
+        if (!user) {
+            return resp.status(404).json({
+                error: "User not found"
+            });
+        }
+
+        resp.status(200).json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image
+        });
+
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            console.log("error in getMe controller", error.message)
+            resp.status(500).json({ error: "Internal Server Error" });
+        };
+    }
+}
+

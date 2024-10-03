@@ -19,15 +19,15 @@ async function startServer() {
     await connectDB();
 
     app.use(cors({
+        origin: 'http://localhost:3001',
         credentials: true,
-        origin: ['http://localhost:3000', 'http://localhost:3001'],
     }));
 
     const httpServer = http.createServer(app); //allowing the app (Express) to handle HTTP requests
     const io = setupSocket(httpServer);
 
     app.use((req:Request, resp : Response, next: NextFunction) => {
-        const openRoutes = ['/signin', '/login'];
+        const openRoutes = ['/signin', '/login','/me'];
 
         if (openRoutes.some(route => req.path.endsWith(route))){
             return next();
@@ -35,6 +35,7 @@ async function startServer() {
 
         verifyToken(req, resp, next);
     }) 
+
     
     app.use('/api', apiRouter);
     

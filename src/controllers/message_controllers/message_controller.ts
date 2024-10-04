@@ -40,7 +40,7 @@ export const getMessageForGroup = async (req: Request, resp: Response) => {
                 groupId: groupID
             },
             orderBy: {
-                createdAt: 'desc'
+                createdAt: 'asc'
             },
         });
 
@@ -67,3 +67,134 @@ export const getMessageForGroup = async (req: Request, resp: Response) => {
         });
     }
 };
+
+
+export const sendMessage = async (req: Request, resp: Response) => {
+    const userID = req.user?.id;
+    const { groupID } = req.params;
+    const { content } = req.body;
+
+    if (!content || !userID || !groupID) {
+        return resp.status(400).json({
+            response: "failure",
+            message: "Missing required fields",
+            data: {}
+        });
+    }
+
+    try {
+        //to determine if it's a group chat or one-on-one
+        const group = await prisma.group.findUnique({
+            where: {
+                id: groupID
+            },
+            include: {
+                users: true
+            }
+        })
+
+        if (!group) {
+            return resp.status(400).json({
+                response: "failure",
+                message: "Group not found",
+                data: {}
+            });
+        }
+
+        const isUserInGroup = await prisma.groupUsers.findFirst({
+            where: {
+                groupId: groupID,
+                userId: userID
+            }
+        })
+
+        if (!isUserInGroup) {
+            return resp.status(400).json({
+                response: "failure",
+                message: "User does not belong to this group",
+                data: {}
+            });
+        }
+
+        const blockedByOthers = await prisma.block.findFirst({
+            where: {
+                blockedId: userID,
+                blockerId: { in: group.users.map(user => user.userId) },
+            },
+        });
+
+        if (blockedByOthers) {
+            return resp.status(400).json({
+                response: "failure",
+                message: "User is blocked by a member of this group",
+                data: {}
+            });
+        }
+
+        if (!group.isGroupChat) {
+
+            const otherUser = group.users.find(user => user.userId !== userID);
+
+            if (otherUser) {
+                const hasBlockingIssues = await prisma.block.findFirst({
+                    where: {
+                        OR: [
+                            { blockedId: userID, blockerId: otherUser.userId },
+                            { blockedId: otherUser.userId, blockerId: userID },
+                        ],
+                    },
+                })
+
+                if (hasBlockingIssues) {
+                    return resp.status(400).json({
+                        response: "failure",
+                        message: "Either the current user have the blocked the other user or the other user has blocked the current user",
+                        data: {}
+                    });
+                }
+            }
+
+
+            const message = await prisma.message.create({
+                data: {
+                    content,
+                    sender: {
+                        connect: {
+                            id: userID
+                        }
+                    },
+                    group: {
+                        connect: {
+                            id: groupID
+                        }
+                    },
+                    createdAt: new Date(),
+                }
+            })
+
+            if (!message) {
+                return resp.status(400).json({
+                    response: "failure",
+                    message: "Error creating message",
+                    data: {}
+                });
+            }
+
+            return resp.status(400).json({
+                response: "success",
+                message: "User sends the message",
+                data: { message }
+            });
+
+        }
+
+    } catch (error) {
+        console.log(error)
+        return resp.status(400).json({
+            response: "error",
+            message: "Error in sending message",
+            data: {}
+        });
+    }
+
+}

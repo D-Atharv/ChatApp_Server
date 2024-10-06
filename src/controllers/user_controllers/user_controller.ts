@@ -47,7 +47,7 @@ export const loginUser = async (req: Request, resp: Response) => {
             expiresIn: '15m'
         });
 
-        setTokenCookie(resp, token);
+        setTokenCookie(resp, token,user.id);
 
         return resp.status(200).json({
             response: "success",
@@ -132,7 +132,7 @@ export const signIn = async (req: Request, resp: Response) => {
             expiresIn: '15m'
         })
 
-        setTokenCookie(resp, token);
+        setTokenCookie(resp, token,newUser.id);
 
         return resp.status(200).json({
             response: "success",
@@ -154,9 +154,13 @@ export const signIn = async (req: Request, resp: Response) => {
 
 
 export const logOut = async (req: Request, resp: Response) => {
+    const userID = req.user?.id;
 
     try {
-        resp.clearCookie('jwt');
+        if (userID) {
+            const cookieName = `jwt_${userID}`;
+            resp.clearCookie(cookieName); 
+        }
         return resp.status(200).json({
             response: "success",
             message: "Logged out successfully.",

@@ -69,51 +69,39 @@ export const getMessageForGroup = async (req: Request, resp: Response) => {
 };
 
 
-export const sendMessage = async (req: Request, resp: Response) => {
-    const userID = req.user?.id;
-    const { groupID } = req.params;
-    const { content } = req.body;
-
+export const sendMessage = async (userID: string, groupID: string, content: string) => {
     if (!content || !userID || !groupID) {
-        return resp.status(400).json({
+        return {
             response: "failure",
             message: "Missing required fields",
             data: {}
-        });
+        };
     }
 
     try {
-        //to determine if it's a group chat or one-on-one
         const group = await prisma.group.findUnique({
-            where: {
-                id: groupID
-            },
-            include: {
-                users: true
-            }
-        })
+            where: { id: groupID },
+            include: { users: true }
+        });
 
         if (!group) {
-            return resp.status(400).json({
+            return {
                 response: "failure",
                 message: "Group not found",
                 data: {}
-            });
+            };
         }
 
         const isUserInGroup = await prisma.groupUsers.findFirst({
-            where: {
-                groupId: groupID,
-                userId: userID
-            }
-        })
+            where: { groupId: groupID, userId: userID }
+        });
 
         if (!isUserInGroup) {
-            return resp.status(400).json({
+            return {
                 response: "failure",
                 message: "User does not belong to this group",
                 data: {}
-            });
+            };
         }
 
         const blockedByOthers = await prisma.block.findFirst({
@@ -124,15 +112,14 @@ export const sendMessage = async (req: Request, resp: Response) => {
         });
 
         if (blockedByOthers) {
-            return resp.status(400).json({
+            return {
                 response: "failure",
                 message: "User is blocked by a member of this group",
                 data: {}
-            });
+            };
         }
 
         if (!group.isGroupChat) {
-
             const otherUser = group.users.find(user => user.userId !== userID);
 
             if (otherUser) {
@@ -143,58 +130,51 @@ export const sendMessage = async (req: Request, resp: Response) => {
                             { blockedId: otherUser.userId, blockerId: userID },
                         ],
                     },
-                })
+                });
 
                 if (hasBlockingIssues) {
-                    return resp.status(400).json({
+                    return {
                         response: "failure",
-                        message: "Either the current user have the blocked the other user or the other user has blocked the current user",
+                        message: "One of the users is blocked by the other",
                         data: {}
-                    });
+                    };
                 }
             }
-
-
-            const message = await prisma.message.create({
-                data: {
-                    content,
-                    sender: {
-                        connect: {
-                            id: userID
-                        }
-                    },
-                    group: {
-                        connect: {
-                            id: groupID
-                        }
-                    },
-                    createdAt: new Date(),
-                }
-            })
-
-            if (!message) {
-                return resp.status(400).json({
-                    response: "failure",
-                    message: "Error creating message",
-                    data: {}
-                });
-            }
-
-            return resp.status(400).json({
-                response: "success",
-                message: "User sends the message",
-                data: { message }
-            });
-
         }
 
+        const message = await prisma.message.create({
+            data: {
+                content,
+                sender: {
+                    connect: { id: userID }
+                },
+                group: {
+                    connect: { id: groupID }
+                },
+                createdAt: new Date(),
+            }
+        });
+
+        if (!message) {
+            return {
+                response: "failure",
+                message: "Error creating message",
+                data: {}
+            };
+        }
+
+        return {
+            response: "success",
+            message: "Message sent successfully",
+            data: { message }
+        };
+
     } catch (error) {
-        console.log(error)
-        return resp.status(400).json({
+        console.error(error);
+        return {
             response: "error",
             message: "Error in sending message",
             data: {}
-        });
+        };
     }
-
-}
+};

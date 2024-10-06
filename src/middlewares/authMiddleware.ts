@@ -16,13 +16,26 @@ declare global {
 }
 
 export const verifyToken = (req: RequestWithUser, resp: Response, next: NextFunction) => {
-    const token = req.cookies.jwt;
-    if (!token) {
+
+
+    const cookies = req.cookies;
+
+    const jwtCookie = Object.keys(cookies).find(cookie => cookie.startsWith('jwt_'));
+
+    if (!jwtCookie) {
         return resp.status(401).json({
             response: "failure",
             message: "Access Denied. No token provided",
             data: {},
-        })
+        });
+    }
+    const token = cookies[jwtCookie];
+    if (!token) {
+        return resp.status(401).json({
+            response: "failure",
+            message: "Unauthorized. Invalid token",
+            data: {},
+        });
     }
 
     try {
@@ -41,3 +54,7 @@ export const verifyToken = (req: RequestWithUser, resp: Response, next: NextFunc
 
     }
 }
+
+
+
+

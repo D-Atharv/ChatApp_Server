@@ -1,22 +1,16 @@
 import express, { Request, Response, NextFunction } from 'express';
 import http from "http";
 import cookieParser from 'cookie-parser';
-import { Server as SocketIOServer } from "socket.io"; 
-import { connectDB, prisma } from './database/db';
-import { apiRouter } from './routes/routes'
+import { connectDB } from './database/db';
+import { apiRouter } from './routes/routes';
 import { verifyToken } from './middlewares/authMiddleware';
-
+import { setupSocket } from './sockets/socket'; 
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app); 
-
-const io = new SocketIOServer(server, {
-    cors: {
-        origin: "*",
-    },
-});
+const server = http.createServer(app);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -34,7 +28,7 @@ async function startServer() {
 
     app.use('/api', apiRouter);
 
-    app.get('/', (req: Request, resp: Response, next: NextFunction) => {
+    app.get('/', (req: Request, resp: Response) => {
         resp.send('Hello World!');
     });
 
@@ -43,37 +37,7 @@ async function startServer() {
         resp.status(500).send('Something broke!');
     });
 
-    io.on('connection', (socket) => {
-        console.log('A user connected', socket.id);
-
-        socket.on('send_message', async (data) => {
-            try {
-                const { content, groupId, senderId } = data;
-
-                const message = await prisma.message.create({
-                    data: {
-                        content,
-                        senderId,
-                        groupId,
-                        createdAt: new Date(),
-                    }
-                });
-
-                io.to(groupId).emit('receive_message', message);
-            } catch (error) {
-                console.error('Error saving message:', error);
-            }
-        });
-
-        socket.on('join_group', (groupId) => {
-            socket.join(groupId);
-            console.log(`User ${socket.id} joined group ${groupId}`);
-        });
-
-        socket.on('disconnect', () => {
-            console.log('User disconnected', socket.id);
-        });
-    });
+    setupSocket(server);
 
     const port = process.env.PORT || 3000;
     server.listen(port, () => console.log(`Server running on port ${port}`));

@@ -22,7 +22,7 @@ export const loginUser = async (req: Request, resp: Response) => {
                 email: email
             },
         });
-
+ 
         if (!user) {
             return resp.status(404).json({
                 response: "failure",
@@ -178,7 +178,7 @@ export const logOut = async (req: Request, resp: Response) => {
 
 export const updateUser = async (req: Request, resp: Response) => {
     const userID = req.user?.id;
-    const { name, image } = req.body;
+    const { name, image, newPassword } = req.body;
 
     try {
         if (!name && !image) {
@@ -207,7 +207,8 @@ export const updateUser = async (req: Request, resp: Response) => {
             },
             data: {
                 name: name ? name : userExists.name,
-                image: image ? image : userExists.image
+                image: image ? image : userExists.image,
+                password: newPassword ? await bcrypt.hash(newPassword, 10) : userExists.password 
             }
         });
 

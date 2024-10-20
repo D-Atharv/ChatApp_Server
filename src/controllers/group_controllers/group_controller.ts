@@ -130,8 +130,6 @@ export const createGroup = async (req: Request, resp: Response) => {
     }
 };
 
-
-
 export const getAllUserGroups = async (req: Request, resp: Response) => {
     const userID = req.user?.id;
 
@@ -139,7 +137,7 @@ export const getAllUserGroups = async (req: Request, resp: Response) => {
         return resp.status(400).json({
             response: "failure",
             message: "User ID not provided",
-        })
+        });
     }
 
     try {
@@ -155,7 +153,7 @@ export const getAllUserGroups = async (req: Request, resp: Response) => {
                 users: {
                     where: {
                         userId: {
-                            not: userID //removing currentUserID
+                            not: userID // removing currentUserID
                         }
                     },
                     select: {
@@ -171,16 +169,17 @@ export const getAllUserGroups = async (req: Request, resp: Response) => {
             }
         });
 
+        // Format groups and construct full image URLs
         const formattedGroups = groups.map(group => ({
             id: group.id,
             title: group.isGroupChat ? group.title : undefined,
             isGroupChat: group.isGroupChat,
             users: group.users.map(u => ({
-                userId: u.user.id, //other userID
+                userId: u.user.id, // other user ID
                 name: u.user.name,
-                image: u.user.image
+                image: u.user.image ? `${req.protocol}://${req.get('host')}${u.user.image}` : null // Construct full image URL
             }))
-        }))
+        }));
 
         resp.status(200).json({
             response: "success",
@@ -196,6 +195,3 @@ export const getAllUserGroups = async (req: Request, resp: Response) => {
         });
     }
 };
-
-
-

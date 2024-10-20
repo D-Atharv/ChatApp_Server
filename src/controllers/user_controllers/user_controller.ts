@@ -175,13 +175,13 @@ export const logOut = async (req: Request, resp: Response) => {
     }
 }
 
-
 export const updateUser = async (req: Request, resp: Response) => {
     const userID = req.user?.id;
-    const { name, image, newPassword } = req.body;
+    const { name, newPassword } = req.body;
+    const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     try {
-        if (!name && !image) {
+        if (!name && !image && !newPassword) {
             return resp.status(400).json({
                 response: "failure",
                 message: "No fields to update. Please provide at least one field to update.",
@@ -208,7 +208,7 @@ export const updateUser = async (req: Request, resp: Response) => {
             data: {
                 name: name ? name : userExists.name,
                 image: image ? image : userExists.image,
-                password: newPassword ? await bcrypt.hash(newPassword, 10) : userExists.password 
+                password: newPassword ? await bcrypt.hash(newPassword, 10) : userExists.password,
             }
         });
 
@@ -217,8 +217,7 @@ export const updateUser = async (req: Request, resp: Response) => {
             message: "User updated successfully.",
             data: updatedUser
         });
-    }
-    catch (error) {
+    } catch (error) {
         console.error('Error updating user:', error);
         resp.status(500).json({
             response: "failure",
@@ -226,7 +225,6 @@ export const updateUser = async (req: Request, resp: Response) => {
             data: {}
         });
     }
-
 }
 
 export const getMe = async (req: Request, resp: Response) => {
@@ -243,18 +241,19 @@ export const getMe = async (req: Request, resp: Response) => {
             });
         }
 
+        const imageUrl = user.image ? `${req.protocol}://${req.get('host')}${user.image}` : null;
+
         resp.status(200).json({
             id: user.id,
             name: user.name,
             email: user.email,
-            image: user.image
+            image: imageUrl 
         });
 
     } catch (error: unknown) {
         if (error instanceof Error) {
             console.log("error in getMe controller", error.message)
             resp.status(500).json({ error: "Internal Server Error" });
-        };
+        }
     }
 }
-
